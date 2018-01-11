@@ -10,7 +10,9 @@ import { ApolloClient } from 'apollo-client'
 import { HttpLink } from 'apollo-link-http'
 import { InMemoryCache } from 'apollo-cache-inmemory'
 import { GC_AUTH_TOKEN } from './constants'
-import { ApolloLink } from 'apollo-client-preset'
+import { ApolloLink, split } from 'apollo-client-preset'
+import { WebSocketLink } from 'apollo-link-ws'
+import { getMainDefinition } from 'apollo-utilities'
 
 const httpLink = new HttpLink({ uri: 'https://api.graph.cool/simple/v1/cjc80zwid007v0106w9nr7riq' })
 
@@ -27,8 +29,27 @@ const middlewareAuthLink = new ApolloLink((operation, forward) => {
 
 const httpLinkWithAuthToken = middlewareAuthLink.concat(httpLink)
 
+const wsLink = new WebSocketLink({
+  uri: `wss://subscriptions.graph.cool/v1/cjc80zwid007v0106w9nr7riq`,
+  options: {
+    reconnect: true,
+    connectionParams: {
+      authToken: localStorage.getItem(GC_AUTH_TOKEN),
+    }
+  }
+})
+
+const link = split(
+  ({ query }) => {
+    const { kind, operation } = getMainDefinition(query)
+    return kind === 'OperationDefinition' && operation === 'subscription'
+  },
+  wsLink,
+  httpLinkWithAuthToken,
+)
+
 const client = new ApolloClient({
-  link: httpLinkWithAuthToken,
+  link,
   cache: new InMemoryCache()
 })
 

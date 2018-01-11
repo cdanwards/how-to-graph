@@ -80,7 +80,6 @@ class Login extends Component {
   }
   this.props.history.push(`/`)
 }
-
   _saveUserData = (id, token) => {
     localStorage.setItem(GC_USER_ID, id)
     localStorage.setItem(GC_AUTH_TOKEN, token)
